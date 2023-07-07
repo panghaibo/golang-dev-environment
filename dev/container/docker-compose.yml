@@ -1,0 +1,53 @@
+version: "3.8"
+
+#volumes 定义一些文件的存储目录
+#如何查看下面的定义具体文件存储在哪里？
+#[docker volume ls] 该命令会列出所有的挂载卷
+#[docker colume inspect target] 该命令会列出target挂载卷的具体路径
+volumes:
+  mysql-data:
+  go-module-cache:
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    security_opt:
+      - seccomp:unconfined
+
+    cap_add:
+      - SYS_PTRACE 
+
+    volumes:
+      - ..:/workspace
+      - go-module-cache:/go/pkg
+        
+    command: sleep infinity # 如果不设置该command，当你启动容器之后立刻就会退出
+    network_mode: service:db  
+
+  db:
+    image: mysql:5.7.21
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_ROOT_HOST: '%'
+    expose:
+      - 3306  
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db_init:/docker-entrypoint-initdb.d # mysql 容器第一次启动的时候会执行该目录下的sql文件
+    
+  adminer:
+    image: adminer:4.8.1 # https://hub.docker.com/_/adminer
+    restart: always
+    depends_on:
+      - db 
+    network_mode: service:db
+
+  redis:
+    image: redis:7.0
+    restart: unless-stopped
+    network_mode: service:db     

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo "Install go tools"
+
+cd "$(git rev-parse --show-toplevel)" || {
+    echo "cannot determine repository root"
+    exit 1
+}
+
+go list -f '{{range $_, $v := .Imports}}{{$v}}{{"\n"}}{{end}}' tools.go |
+      xargs go list -f '{{with $m := .Module}}{{$.ImportPath}}{{if not $m.Main}}@{{$m.Version}}{{end}}{{end}}' |
+      xargs -n1 sh -c 'echo Installing $0; go install $0;'

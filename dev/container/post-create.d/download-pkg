@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "download go packages"
+go mod download -x
+
